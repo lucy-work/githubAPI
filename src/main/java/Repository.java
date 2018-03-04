@@ -12,6 +12,15 @@ public class Repository {
     private int stargazersCount;
     @JsonProperty(value = "watchers_count")
     private int watchersCount;
+    private Owner owner;
+
+    public Owner getOwner() {
+        return owner;
+    }
+
+    public void setOwner(Owner owner) {
+        this.owner = owner;
+    }
 
     public int getId() {
         return id;
@@ -61,6 +70,7 @@ public class Repository {
                 ", forksCount=" + forksCount +
                 ", stargazersCount=" + stargazersCount +
                 ", watchersCount=" + watchersCount +
+                ", owner=" + owner +
                 '}';
     }
 }
