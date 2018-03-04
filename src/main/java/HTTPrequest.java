@@ -7,6 +7,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -52,13 +55,17 @@ public class HTTPrequest {
         }
     }
 
+    public static List<Repository> sort(List<Repository> repos, Comparator<Repository> comparator) {
+        Collections.sort(repos, comparator);
+        return repos;
+    }
+
     public static void main(String[] args) throws IOException {
         String json = queryHttp("api.github.com", "https", 443, "/orgs/meetup/repos");
         List<Repository> repos = convertJson(json);
-        for (Repository repo : repos) {
-            System.out.println("id: " + repo.getId() + "    name: " + repo.getName());
-        }
 
+        List<Repository> sorted = sort(repos, new StarDescComparator());
+        System.out.println(sorted);
     }
 
 
