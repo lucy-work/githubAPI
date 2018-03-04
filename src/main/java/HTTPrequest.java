@@ -1,52 +1,64 @@
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.*;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
+
 import java.io.IOException;
+import java.util.List;
 
 
 /**
  * Created by liudmylaiterman on 3/3/18.
  */
 public class HTTPrequest {
-    public static void main (String[] args) throws IOException {
-
-        System.out.println("Hello");
-
-
+    public static String queryHttp(final String host, final String protocol, final int port, final String path) {
         DefaultHttpClient httpclient = new DefaultHttpClient();
         try {
             // specify the host, protocol, and port
-            HttpHost target = new HttpHost("api.github.com", 443, "https");
+            HttpHost target = new HttpHost(host, port, protocol);
 
             // specify the get request
-            HttpGet getRequest = new HttpGet("/orgs/meetup/repos");
-
-            System.out.println("executing request to " + target);
+            HttpGet getRequest = new HttpGet(path);
 
             HttpResponse httpResponse = httpclient.execute(target, getRequest);
+
+            //verify the valid error code
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            if (statusCode != 200) {
+                throw new RuntimeException("Failed with HTTP error code : " + statusCode);
+            }
+
+            //pull back the response object
             HttpEntity entity = httpResponse.getEntity();
 
-            System.out.println("----------------------------------------");
-            System.out.println(httpResponse.getStatusLine());
-            Header[] headers = httpResponse.getAllHeaders();
-            for (int i = 0; i < headers.length; i++) {
-                System.out.println(headers[i]);
-            }
-            System.out.println("----------------------------------------");
+            return EntityUtils.toString(entity);
 
-            if (entity != null) {
-                System.out.println(EntityUtils.toString(entity));
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
-            httpclient.getConnectionManager().shutdown();
+        } catch (Exception e){
+            throw new RuntimeException(e);
         }
+    }
+
+
+    public static List<Repository> convertJson(String json){
+        ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        try {
+            List<Repository> repos = mapper.readValue(json, new TypeReference<List<Repository>> () {});
+            return repos;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        String json = queryHttp("api.github.com", "https", 443, "/orgs/meetup/repos");
+        List<Repository> repos = convertJson(json);
+        for (Repository repo : repos) {
+            System.out.println("id: " + repo.getId() + "    name: " + repo.getName());
+        }
+
     }
 
 
