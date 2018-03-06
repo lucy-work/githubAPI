@@ -1,3 +1,7 @@
+package lucy_it.sandbox.github.comparator;
+
+import lucy_it.sandbox.github.model.Repository;
+
 import java.util.Comparator;
 
 /**

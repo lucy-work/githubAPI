@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>git_hub_project</groupId>
-    <artifactId>qa_exercise</artifactId>
+    <groupId>lucy_it.sandbox</groupId>
+    <artifactId>github</artifactId>
     <version>1.0-SNAPSHOT</version>
     <build>
         <plugins>

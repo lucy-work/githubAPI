@@ -1,3 +1,5 @@
+package lucy_it.sandbox.github.model;
+
 /**
  * Created by liudmylaiterman on 3/4/18.
  */

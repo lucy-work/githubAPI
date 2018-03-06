@@ -1,3 +1,5 @@
+package lucy_it.sandbox.github.model;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**

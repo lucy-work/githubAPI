@@ -1,7 +1,11 @@
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.*;
+import lucy_it.sandbox.github.model.Contributor;
+import lucy_it.sandbox.github.model.Repository;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -9,43 +13,57 @@ import org.apache.http.util.EntityUtils;
 import java.io.IOException;
 import java.util.*;
 
-
 /**
- * Created by liudmylaiterman on 3/3/18.
+ * Created by liudmylaiterman on 3/4/18.
  */
-public class HTTPrequest {
+public class QueryUtils {
     public static String queryHttp(final String host, final String protocol, final int port, final String path) {
         DefaultHttpClient httpclient = new DefaultHttpClient();
         try {
-            // specify the host, protocol, and port
+            HttpResponse httpResponse = null;
             HttpHost target = new HttpHost(host, port, protocol);
-
-            // specify the get request
             HttpGet getRequest = new HttpGet(path);
 
-            HttpResponse httpResponse = httpclient.execute(target, getRequest);
-
-            //verify the valid error code
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            if (statusCode != 200) {
-                throw new RuntimeException("Failed with HTTP error code : " + statusCode);
+            boolean sucess = false;
+            int counter = 0;
+            while (!sucess || counter > 10) {
+                counter++;
+                httpResponse = httpclient.execute(target, getRequest);
+                int statusCode = httpResponse.getStatusLine().getStatusCode();
+                switch (statusCode) {
+                    case 200: {
+                        sucess = true;
+                        break;
+                    }
+                    case 202: {
+                        System.out.println("Status Code = 202. Will retry in 5s");
+                        Thread.sleep(10000);
+                        EntityUtils.consumeQuietly(httpResponse.getEntity());
+                        break;
+                    }
+                    default: {
+                        throw new RuntimeException("Failed with HTTP error code : " + statusCode);
+                    }
+                }
             }
 
-            //pull back the response object
             HttpEntity entity = httpResponse.getEntity();
 
             return EntityUtils.toString(entity);
 
         } catch (Exception e){
             throw new RuntimeException(e);
+        } finally {
+            httpclient.close();
         }
+
     }
 
 
     public static List<Repository> jsonToRepos(String json) {
         ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try {
-            return mapper.readValue(json, new TypeReference<List<Repository>> () {});
+            return mapper.readValue(json, new TypeReference<List<Repository>>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -69,32 +87,16 @@ public class HTTPrequest {
         return repos.subList(0, n);
     }
 
-    public static HashSet<Contributor> getContribList(List<Contributor> contributerses){
-        HashSet<Contributor> uniqueContr = new HashSet<Contributor>();
-        for (Contributor contr : contributerses) {
-            uniqueContr.add(contr);
+    public static Set<Contributor> getUniqueContributors(List<Repository> repos){
+        Set<Contributor> uniqueContr = new HashSet<Contributor>();
+
+        for (Repository repo : repos){
+            String path = String.format("/repos/%s/%s/stats/contributors", repo.getOwner().getLogin(), repo.getName());
+            String jsonContrib = QueryUtils.queryHttp("api.github.com", "https", 443, path);
+            List<Contributor> contributors = QueryUtils.jsonToContributors(jsonContrib);
+            uniqueContr.addAll(contributors);
         }
+
         return uniqueContr;
     }
-
-    public static void main(String[] args) throws IOException {
-        String jsonRepo = queryHttp("api.github.com", "https", 443, "/orgs/meetup/repos");
-        List<Repository> repos = jsonToRepos(jsonRepo);
-
-        List<Repository> top3StarRepos = topN(sort(repos, new StarDescComparator()),3);
-//        System.out.println(topN(sort(repos, new WatchersDescComparator()),3));
-//        System.out.println(topN(sort(repos, new ForksDescComparator()),3));
-
-
-        for (Repository repo : top3StarRepos){
-            String path = String.format("/repos/%s/%s/stats/contributors", repo.getOwner().getLogin(), repo.getName());
-            String jsonContrib = queryHttp("api.github.com", "https", 443, path);
-            List<Contributor> contributors = jsonToContributors(jsonContrib);
-            System.out.println(contributors);
-        }
-
-
-    }
-
-
 }
